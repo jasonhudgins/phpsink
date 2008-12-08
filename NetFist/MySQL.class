@@ -1,0 +1,218 @@
+<?php
+	// MySQL.class
+	// Author : Jason Hudgins <jason@netfist.com>
+
+	// this is my sql abstraction layer
+class SQL {
+
+		// the constructor
+	function SQL ($server, $dbase, $user, $pass) {
+
+			// try to connect (this better not use pconnect if your
+			// max connections are set low)
+		$link = mysql_connect($server, $user, $pass, MYSQL_CLIENT_INTERACTIVE)
+        or die("Could not connect");
+
+			// save the dbase
+		$this->dbase = $dbase;
+
+			// save the link
+		$this->conn = $link;
+	}
+
+		// the delete routine
+	function Delete($table, $where) {
+		$sql = "delete from $table where $where";
+		$res = mysql_db_query($this->dbase, $sql, $this->conn);
+		if(!$res) {
+			print "Query : $sql\n";
+			die;
+		}
+		return $res;
+
+	}
+
+		// quick query methiod
+	function Quick($sql) {
+      // select the databse
+    mysql_select_db($this->dbase, $this->conn);
+
+      // pop query and check for error
+    $res = mysql_query($sql, $this->conn);
+    if(!$res) {
+      print "Query Failed " . mysql_error() . '<br>';
+      die;
+    }
+
+			// return the quick result
+		if (mysql_num_rows($res) > 0) { 
+			return @array_shift(mysql_fetch_row($res));
+		}
+	}
+
+		// insert routine
+	function Insert ($table, $recs) {
+
+		if(!$table || !$recs) {
+			print('MySQL->Insert() is missing required args!');
+			die;
+		}
+
+			// string for the column names
+		$columns = join(',', array_keys($recs));
+
+			// select the databse
+		if(!mysql_select_db($this->dbase, $this->conn))  {
+			print "Select DB Failed" . mysql_error() . '<br>';
+			die;
+		}
+
+			// array for the data elements
+		$data = array_values($recs);
+			// a new array for the data elts we copy too
+		$values = array();
+			// iterate over the elts, quote them, and push them
+			// onto the new array
+		foreach ($data as $elt) {
+			array_push($values, $this->Quote($elt));
+		}
+			// join them up into a string
+		$values_str = join(',', $values);
+
+		$sql = "insert into $table ($columns) values ($values_str)";
+		
+		$res = mysql_query($sql, $this->conn);
+		if(!$res) {
+			print "Query Failed " . mysql_error() . '<br>';
+			die;
+		}
+			// return the last inserted id
+		return mysql_insert_id($this->conn);
+	}
+
+		// this method returns a mysql timestamp based on the current system
+		// time.
+	function Now() {
+		$d=getdate(time());
+		$yr=$d["year"];
+		$mo=$d["mon"];
+		$da=$d["mday"];
+		$hr=$d["hours"];
+		$mi=$d["minutes"];
+		$se=$d["seconds"];
+
+		return sprintf("%04d%02d%02d%02d%02d%02d",$yr,$mo,$da,$hr,$mi,$se);
+	}
+
+		// update routine
+	function Update ($table, $where, $recs) {
+
+			// array to hold update elements
+		$update_elts = array();
+			// iterate over the records and build our
+			// update statement.
+		foreach ($recs as $column => $nada) {
+			array_push($update_elts, "$column = " . $this->Quote($recs[$column]));
+		}
+		$column_set = join(",", $update_elts);
+		$query = "update $table set " . $column_set . " where " . $where;
+		$res = mysql_db_query($this->dbase, $query, $this->conn);
+		if(!$res) {
+			print "Query Failed : $query<br>\n";
+			print "Mysql Error : " . mysql_error() . "<br>\n";
+			die;
+		}
+	}
+
+		// this query routine is used for selects..
+	function query ($sql) {
+			// select the databse
+		mysql_select_db($this->dbase, $this->conn);
+			// pop query and check for error
+		$res = mysql_query($sql, $this->conn);
+		if(!$res) {
+			print "Query Failed " . mysql_error() . '<br>';
+			die;
+		}
+			// build recordset and return it
+		return $this->buildRecordSet($res);
+	}
+
+		// this query builds out a record set
+		// and returns it.
+	function buildRecordSet ($res) {
+
+			// an array to hold record objects
+		$records = array();
+			// define our iterator
+		$index = 0;
+			// iterate over the result set and build the record array
+		while($index < mysql_num_rows($res)) {
+			$records[$index] = mysql_fetch_assoc($res); 
+			$index++;
+		}
+			// return the array
+		return $records;
+	}
+
+		// method to return CSV output string from a result set
+	function buildCSV($rs) {
+			// output accumulator var
+		$csvOut = '';
+			// define the delimitor char
+		$delimiter = ",";
+			// iterate over each record
+		foreach($rs as $array) {
+				// line accum variable
+	 		$line = "";
+				// iterate over each array ele
+	 		foreach($array as $val) { 
+					// remove any windows new lines, 
+					// as they interfere with the parsing at the other end 
+				$val = str_replace("\r\n", "\n", $val); 
+					// if a deliminator char, a double quote char or a newline 
+					// are in the field, add quotes 
+				if(ereg("[$delimiter\"\n\r]", $val)) { 
+					$val = '"'.str_replace('"', '""', $val).'"';
+				}
+					// tack on the new val	
+				$line .= $val.$delimiter; 
+ 			}
+
+				// strip the last deliminator 
+			$line = substr($line, 0, (strlen($delimiter) * -1)); 
+				// add the newline 
+			$line .= "\n";
+				// append line to csvoutput
+			$csvOut .= $line;
+		}
+		return $csvOut;
+	}
+
+		// execute this routine (this thing needs to be deprecated)
+	function Exec ($sql) {
+		$res = mysql_db_query($this->dbase, $sql, $this->conn);
+		if(!$res) {
+			print "Query : $sql\n";
+			die;
+		}
+		return $res;
+	}
+
+		// function to escape strings
+	function Quote ($data) {
+		return "'" . mysql_escape_string($data) . "'";
+	}
+
+		// num rows function
+	function NumRows ($res) {
+		return mysql_num_rows($res);
+	}
+
+		// fetch row routine
+	function FetchRow ($res) {
+		return mysql_fetch_row($res);
+	}
+}
+
+?>

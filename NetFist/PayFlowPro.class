@@ -1,0 +1,54 @@
+<?php
+	// PayFlowPro.Class
+	// Author: Jason Hudgins <jason@netfist.com>
+class PayFlowPro {
+
+		// some constants
+	var $CONST;
+	var $PFPRO;
+	var $SERVER;
+	
+		// constructor which doesn't do anything
+	function PayFlowPro($pfpro, $server, $partner, $vendor, $user, $pass) {
+			// assemble constant paramaters
+		$this->CONST = "TENDER=C&PARTNER=$partner" . 
+			"&VENDOR=$vendor&USER=$user&PWD=$pass";
+			// set path to payflowpro binary
+		$this->PFPRO = $pfpro;
+		$this->SERVER = $server;
+	}
+		
+		// method to set arguments from assoc array	
+	function exec ($args) {
+	
+			// argument accumulator string
+		$arg_string = '';
+			// iterate over args and build arguments
+		foreach($args as $key => $value) {
+				// keys and values must be escaped
+			$p = escapeshellcmd($key);
+ 			$v = escapeshellcmd($value);
+				// assemble argument string
+			$arg_string .= $p . '=' . $v . '&';
+		}
+		$arg_string .= $this->CONST;
+		
+			// assemble execution string
+		$exec_string = "$this->PFPRO $this->SERVER 443 \"$arg_string\" 30";
+		
+			// backtick the command
+		$result_string = `$exec_string`;
+			// parse the results into an array
+		$result_tokens = split('&', $result_string);
+			// arrange results into a map
+		$result_map = array();
+		foreach($result_tokens as $token) {
+			$vals = split('=', $token);
+			$result_map[$vals[0]] = $vals[1];
+		}
+		
+			// return the map
+		return $result_map;
+	}
+}
+?>

@@ -1,0 +1,13 @@
+<?
+	// the GIF Class
+	// Author : Jason Hudgins <jason@netfist.com>
+
+	require_once('MediaItem.class');
+
+		// class implementation
+	class GIF extends MediaItem {
+			// constructor method
+		function GIF () {
+		}
+	}
+?>

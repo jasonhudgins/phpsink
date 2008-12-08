@@ -1,0 +1,256 @@
+<?
+		// Standard HTML utility functions
+		// Author : Jason Hudgins <jason@netfist.com>
+
+require_once("$PHP_LIB/NetFist/Template.class");
+
+class HTML {
+
+		// method to generate a table matrix (template)
+	function matrix($rows, $numElts) {
+
+
+			// determine number of rows in matrix
+		$matrix_rows = (int)($numElts / $rows);
+		$extra_elts = ($numElts % $rows);
+
+			// calc cell width percentage
+		$width = (int)(100 / $rows);
+
+			// init data label counter, starting at 0
+		$counter = 0;
+			// init output variable
+		$output = "\n" . '<table width="100%">' . "\n";
+			// loop for each row
+		for($i = 1; $i <= $matrix_rows; $i++) {
+				// init table row
+			$output .= "\t<tr>\n";
+				// loop for each cell
+			for($k = 0; $k < $rows; $k++) {
+					// output cell start
+				$output .= "\t\t" . '<td width="' . $width . '%">' . "\n";
+					// output cell template variable
+				if($counter <= ($numElts - 1)) {
+					$output .= "\t\t\t" . '$data' . $counter . "\n";
+				}
+				else {
+					$output .= "&nbsp\n";
+				}
+					// output cell end
+				$output .= "\t\t" . '</td>' . "\n";
+				$counter++;
+			}
+				// end the table row
+			$output .= "\t</tr>\n";
+		}
+
+			// if there are any remainders we have one more row to do
+		if($extra_elts) {
+			$output .= "\t<tr>\n";
+			for($i = 0; $i < $extra_elts; $i++) {
+				$output .= "\t\t" . '<td width="' . $width .  '%">' . "\n";
+				$output .= "\t\t\t" . '$data' . $counter++ . "\n";
+				$output .= "\t\t" . '</td>' . "\n";
+			}
+			$output .= "\t</tr>\n";
+		}
+
+			// close output table
+		$output .= "</table>\n";
+		return $output;
+	}
+
+	function dayOptionList ($intDay) {
+			// define option list
+		$optList = '
+			<select name="day">
+				<option value="1" $selected1>1</option>
+				<option value="2" $selected2>2</option>
+				<option value="3" $selected3>3</option>
+				<option value="4" $selected4>4</option>
+				<option value="5" $selected5>5</option>
+				<option value="6" $selected6>6</option>
+				<option value="7" $selected7>7</option>
+				<option value="8" $selected8>8</option>
+				<option value="9" $selected9>9</option>
+				<option value="10" $selected10>10</option>
+				<option value="11" $selected11>11</option>
+				<option value="12" $selected12>12</option>
+				<option value="13" $selected13>13</option>
+				<option value="14" $selected14>14</option>
+				<option value="15" $selected15>15</option>
+				<option value="16" $selected16>16</option>
+				<option value="17" $selected17>17</option>
+				<option value="18" $selected18>18</option>
+				<option value="19" $selected19>19</option>
+				<option value="20" $selected20>20</option>
+				<option value="21" $selected21>21</option>
+				<option value="22" $selected22>22</option>
+				<option value="23" $selected23>23</option>
+				<option value="24" $selected24>24</option>
+				<option value="25" $selected25>25</option>
+				<option value="26" $selected26>26</option>
+				<option value="27" $selected27>27</option>
+				<option value="28" $selected28>28</option>
+				<option value="29" $selected29>29</option>
+				<option value="30" $selected30>30</option>
+				<option value="31" $selected31>31</option>
+			</select>
+		';
+
+			// init new template
+		$Template = new Template('');
+		$Template->regVar('selected' . $intDay, 'SELECTED'); 
+		return $Template->stringSpitContent($optList);
+	}
+
+	function monthOptionList ($intMonth) {
+
+			// define option list
+		$optList = '
+			<select name="month">
+				<option value="1" $selected1>Jan</option>
+				<option value="2" $selected2>Feb</option>
+				<option value="3" $selected3>Mar</option>
+				<option value="4" $selected4>Apr</option>
+				<option value="5" $selected5>May</option>
+				<option value="6" $selected6>Jun</option>
+				<option value="7" $selected7>Jul</option>
+				<option value="8" $selected8>Aug</option>
+				<option value="9" $selected9>Oct</option>
+				<option value="10" $selected10>Sep</option>
+				<option value="11" $selected11">Nov</option>
+				<option value="12" $selected12>Dec</option>
+			</select>
+		';
+
+			// init new template
+		$Template = new Template('');
+		$Template->regVar('selected' . $intMonth, 'SELECTED'); 
+		return $Template->stringSpitContent($optList);
+	}
+
+	function yearOptionList($intYear, $low, $high) {
+
+		$optList = '<select name="year">';
+		while($low <= $high) {
+			$optList .= "<option value=\"$low\" \$selected$low>$low</option>\n";
+			$low++;
+		}
+		$optList .= '</select>';
+
+			// init new template
+		$Template = new Template('');
+		$Template->regVar('selected' . $intYear, 'SELECTED'); 
+		return $Template->stringSpitContent($optList);
+	}
+
+	function hourOptionList ($intHour) {
+
+		$optList = '		
+				<select name="hour">
+					<option value="00" $selected0>
+						12:00 :00 a.m. (midnight)
+					</option>
+					<option value="01" $selected1>
+						1:00 :00 a.m.
+					</option>
+					<option value="02" $selected2>
+						2:00 :00 a.m.
+					</option>
+					<option value="03" $selected3>
+						3:00 :00 a.m.
+					</option>
+					<option value="04" $selected4>
+						4:00 :00 a.m.
+					</option>
+					<option value="05" $selected5>
+						5:00 a.m.
+					</option>
+					<option value="06" $selected6>
+						6:00 a.m.
+					</option>
+					<option value="07" $selected7>
+						7:00 a.m.
+					</option>
+					<option value="08" $selected8>
+						8:00 a.m.
+					</option>
+					<option value="09" $selected9>
+						9:00 a.m.
+					</option>
+					<option value="10" $selected10>
+						10:00 a.m.
+					</option>
+					<option value="11" $selected11>
+						11:00 a.m.
+					</option>
+					<option value="12" $selected12>
+						12:00 p.m. (noon)
+					</option>
+					<option value="13" $selected13>
+						1:00 p.m.
+					</option>
+					<option value="14" $selected14>
+						2:00 p.m.
+					</option>
+					<option value="15" $selected15>
+						3:00 p.m.
+					</option>
+					<option value="16" $selected16>
+						4:00 p.m.
+					</option>
+					<option value="17" $selected17>
+						5:00 p.m.
+					</option>
+					<option value="18" $selected18>
+						6:00 p.m.
+					</option>
+					<option value="19" $selected19>
+						7:00 p.m.
+					</option>
+					<option value="20" $selected20>
+						8:00 p.m.
+					</option>
+					<option value="21" $selected21>
+						9:00 p.m.
+					</option>
+					<option value="22" $selected22>
+						10:00 p.m.
+					</option>
+					<option value="23" $selected23>
+						11:00 p.m.
+					</option>
+				</select>
+		';
+
+			// init new template
+		$Template = new Template('');
+		$Template->regVar('selected' . $intHour, 'SELECTED'); 
+		return $Template->stringSpitContent($optList);
+	}
+
+	function minOptionList ($intMin) {
+		$count = 0;
+		$optList = '<select name="minute">';
+		while($count < 60) {
+				# add a previx if needed
+			if($count < 10) {
+				$min = '0' . $count;
+			}
+			else {
+				$min = $count;
+			}
+			$optList .= "<option value=\"$min\" \$selected$min>$min</option>\n";
+			$count++;
+		}
+		$optList .= '</select>';
+		
+			// init new template
+		$Template = new Template('');
+		$Template->regVar('selected' . $intMin, 'SELECTED'); 
+		return $Template->stringSpitContent($optList);
+	}
+}
+
+?>

@@ -1,0 +1,53 @@
+<?
+// The Session class
+// Author : Jason Hudgins <jason@netfist.com>
+
+include('SQL.class');
+
+class Session {
+
+		// our magic constructor
+	function Session ($SessionID, $SqlConfig) {
+
+			// sanity checks
+		if(!$SessionID) {
+			die("Session requires a valid Session ID!\n");
+		}
+		$SqlConfig->Verify();
+
+			// store vars in object
+		$this->SESSION_ID = $SessionID;
+		$this->SQL_CONFIG = $SqlConfig;
+			// store connection
+		$this->_Connect();
+			// load session
+		$this->_LoadSession();
+
+		die ("session initialized\n");
+	}
+
+		// method to connect us to the database
+	function _Connect () {
+		$this->SQL = new SQL($this->SQL_CONFIG);
+	}
+	
+		// method to load the session
+	function _LoadSession () {
+
+		$Query = "
+			select
+				*
+			from
+				session
+			where id = '$this->SESSION_ID'
+		";
+
+			// go ahaed and init the session vars
+		$this->SESSION_VARS = array();
+		$RecordSet = $this->SQL->Select($Query);
+
+		die("session loaded\n");
+	}
+}
+
+?>

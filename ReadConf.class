@@ -1,0 +1,45 @@
+<?
+
+// the ReadConf class
+// author : Jason Hudgins <jason@netfist.com>
+
+class ReadConf {
+
+		// the constructor	
+	function ReadConf ($ConfigFile) {
+
+			// store the config file
+		$this->CONF = $ConfigFile;
+
+			// read in the config file
+		$infile = fopen($ConfigFile, 'r');
+		if(!$infile) {
+			die("Can't open $ConfigFile for reading!\n");
+		}
+		$confdata = fread ($infile, filesize($ConfigFile));
+		fclose($infile);
+			
+			// hash to store our config data
+		$this->CONF_VALUES = array();
+
+			// split conf data into an array of lines
+		$lines = explode("\n", $confdata);
+		foreach($lines as $line) {
+				// skip comment lines
+			if(!preg_match('/^#/', $line) && preg_match('/\w/', $line)) {
+					// split into name / value pairs
+				$data = preg_split('/\s*=\s*/', $line);
+			
+					// store the data
+				$this->CONF_VALUES[$data[0]] = $data[1];
+			}
+		}
+	}
+
+		// this method returns the value for the specific config param
+	function Config ($Name) {
+		return $this->CONF_VALUES[$Name];
+	}
+}
+
+?>

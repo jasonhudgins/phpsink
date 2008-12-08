@@ -1,0 +1,89 @@
+<?
+// MySql Driver Class
+// Author : Jason Hudgins <jason@netfist.com>
+
+include('/usr/local/php_lib/SQL/Record.class');
+
+	class MySql {
+
+			// the constructor
+		function MySql ($SqlConfig) {
+
+				// sanity checks
+			$SqlConfig->Verify();	
+			$this->SQL_CONFIG = $SqlConfig;
+
+				// get a connection link
+			$this->_Connect();
+		}
+
+			// method to acquire a record set meta data class
+		function GetRecordSetMetaData ($Query) {
+				// modify query with limit including removing existing limit
+			preg_replace('/limit\s+\d+/i', '', $Query);
+				// add a new limit
+			$Query .= ' LIMIT 1';
+				// connect to the database
+			mysql_select_db($this->SQL_CONFIG->Database(NULL), $this->LINK);
+				// pop the query
+			$mysql_res = mysql_query($Query);
+				// check for errors
+			if(!$mysql_res) {
+				die(mysql_error());
+			}
+				// acquire the column names
+			$ColumnNames = array();
+			for ($i = 0; $i < mysql_num_fields($mysql_res); $i++) {
+				array_push($ColumnNames, mysql_field_name($mysql_res, $i));
+			}
+				// acquire the column lengths
+			$ColumnLengths = mysql_fetch_lengths($mysql_res);
+				// acquire ansi types
+			for ($i=0; $i < mysql_num_fields($mysql_res); $i++) {
+				$type  = mysql_field_type($mysql_res, $i);
+			}
+				// acquire flags
+			for ($i=0; $i < mysql_num_fields($mysql_res); $i++) {
+				$flag_string  = mysql_field_flags($mysql_res, $i);
+				$flags = explode(' ', $flag_string);
+				foreach($flags as $flag) {
+					print "$flag<br>";
+				}	
+			}
+
+
+			die("generated RecordSetMetaData");
+		}
+
+			// method to perform select query
+		function Select ($Query) {
+				// connect to the database
+			mysql_select_db($this->SQL_CONFIG->Database(NULL), $this->LINK);
+				// pop the query
+			$mysql_res = mysql_query($Query);
+				// check for errors
+			if(!$mysql_res) {
+				die(mysql_error());
+			}
+				// generate a RecordSetMetaData object
+			$RecordSetMetaData = $this->GetRecordSetMetaData($Query);
+
+				// iterate over the result set
+ 			while ($row = mysql_fetch_assoc($mysql_res)) {
+					// init a new record object	
+				$Record = new $Record();
+			}
+			die("driver select query");
+		}
+
+			// method to connect
+		function _Connect () {
+
+				// establish persistent database connection
+			$this->LINK = mysql_pconnect($this->SQL_CONFIG->Host(NULL) . ':' . 
+				$this->SQL_CONFIG->Port(NULL), $this->SQL_CONFIG->User(NULL), 
+				$this->SQL_CONFIG->Password(NULL));
+		}
+	}
+
+?>

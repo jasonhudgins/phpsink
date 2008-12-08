@@ -1,0 +1,83 @@
+<?
+
+	// the SqlConfig class
+	// author : Jason Hudgins <jason@netfist.com>
+
+class SqlConfig {
+
+		// the constructor method
+	function SqlConfig ($ConfigFile) {
+
+	}
+
+		// set or return the database
+	function Database ($Database) {
+		if($Database) {
+			$this->DATABASE = $Database;
+		}
+		return $this->DATABASE;
+	}
+
+		// dump settings
+	function Dump () {
+		return
+			'SERVER_TYPE: ' . $this->ServerType(NULL) . '<br>' .
+			'HOST: ' . $this->Host(NULL) . '<br>' .
+			'PORT: ' . $this->Port(NULL) . '<br>' .
+			'DATABASE: ' . $this->Database(NULL) . '<br>' .
+			'USER: ' . $this->User(NULL) . '<br>' .
+			'PASSWORD: ' . $this->Password(NULL) . '<br>';
+	}
+
+		// set or return the host
+	function Host ($Host) {
+		if($Host) {
+			$this->HOST = $Host;
+		}
+		return $this->HOST;
+	}
+
+		// set or return the password
+	function Password ($Password) {
+		if($Password) {
+			$this->PASSWORD = $Password;
+		}
+		return $this->PASSWORD;
+	}
+
+		// set or return the port
+	function Port ($Port) {
+		if($Port) {
+			$this->PORT = $Port;
+		}
+		return $this->PORT;
+	}
+
+		// set and return or return server type
+	function ServerType ($ServerType) {
+		if($ServerType) {
+			$this->SERVER_TYPE = $ServerType;
+		}
+		return $this->SERVER_TYPE;
+	}
+
+		// set or return the user
+	function User ($User) {
+		if($User) {
+			$this->USER = $User;
+		}
+		return $this->USER;
+	}
+
+		// verify the object
+	function Verify () {
+		if(!$this->SERVER_TYPE) {
+			die("SERVER_TYPE is not defined\n");
+		}
+		else if(!$this->DATABASE) {
+			die("DATABASE is not defined\n");
+		}
+	}
+}
+
+?>

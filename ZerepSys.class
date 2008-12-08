@@ -1,0 +1,61 @@
+<?
+		// This class lib is a collection of the functions used in 
+		// the planetZerep code, and it has been assembled by
+		// Jason Hudgins <jason@netfist.com>
+
+class ZerepSys {
+
+		// the constructor
+	function ZerepSys () {
+	}
+
+		// This method redirects us to an http URL if we are pointed
+		// to a non https URL
+	function EnsureHTTP(&$SVars) {
+		if ($SVars["HTTPS"] == 'on') {
+    	$Redirect .= 'http://';
+    	$Redirect .= $SVars['HTTP_HOST'];
+    	$Redirect .= $SVars['REQUEST_URI'];
+    	$this->MyRedirect($Redirect);
+  	}
+	}
+
+		// This method redirects us to an http URL if we are pointed
+		// to a https URL
+	function EnsureHTTPS(&$SVars) {
+		if ($SVars["HTTPS"] != 'on') {
+			$Redirect .= 'https://';
+			$Redirect .= $SVars['HTTP_HOST'];
+			$Redirect .= $SVars['REQUEST_URI'];
+			$this->MyRedirect($Redirect);
+		}
+  }
+
+		// functio nto escape stuff before dbase insertion
+	function myAddSlashes(&$st) {
+		$st = trim($st);
+
+		if ( preg_match("/[^\\\\]'/",$st) || (get_magic_quotes_gpc() != 1) ) {
+			$st = AddSlashes($st);
+		}
+		return $st;
+	}
+
+
+		// this method sends a redirect HTTP header with the passed
+		// $URL arg as the target
+	function MyRedirect($URL) {
+
+  	if (strstr ($URL, "?")) {
+    	$URL .= "&" . SID;
+  	}
+  	else {
+    	$URL .= "?" . SID;
+  	}
+
+  	header("Location: $URL");
+  	exit;
+	}
+}
+
+?>

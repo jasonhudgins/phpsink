@@ -1,0 +1,14 @@
+<?php
+
+// beginning of Login class
+class Login {
+
+	// the constructor
+function Login () {
+
+}
+
+
+// end of class
+}
+?>

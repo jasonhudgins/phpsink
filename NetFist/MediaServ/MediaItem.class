@@ -1,0 +1,52 @@
+<?
+	// the MediaItem Class
+	// Author : Jason Hudgins <jason@netfist.com>
+
+		// class implementation
+	class MediaItem {
+
+			// variable to hold the MediaItem data
+		var $DATA;
+		var $DATE;
+		var $MD5;
+
+			// constructor method
+		function MediaItem () {
+		}
+
+			// set the media data
+		function setData ($data) {
+			$this->DATA = $data;
+		}
+
+			// append the media data
+		function appendData ($data) {
+			$this->DATA .= $data;
+		}
+
+			// return the media data
+		function getData () {
+			return $this->DATA;
+		}
+
+			// method to return the date
+		function getDate () {
+			return $this->DATE;
+		}
+
+			// method to set the date
+		function setDate ($date) {
+			$this->DATE = $date;
+		}
+
+			// method to set the md5
+		function setMD5 ($md5) {
+			$this->MD5 = $md5;
+		}
+
+			// method to return the md5
+		function getMD5 () {
+			return $this->MD5;
+		}
+	}
+?>

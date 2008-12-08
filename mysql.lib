@@ -1,0 +1,108 @@
+<?php
+
+		// our includes
+include('/usr/local/php_lib/SQL/Record.class');
+
+	// this is my postgres sql abstraction layer
+class SQL {
+
+		// the constructor
+	function SQL ($server, $dbase, $user, $pass) {
+
+			// try to connect 
+		$link = mysql_connect($server, $user, $pass)
+        or die("Could not connect");
+
+			// save the dbase
+		$this->dbase = $dbase;
+
+			// save the link
+		$this->conn = $link;
+	}
+
+		// insert routine
+	function Insert ($table, $recs) {
+
+	}
+
+		// update routine
+	function Update ($table, $where, $recs) {
+
+			// array to hold update elements
+		$update_elts = array();
+			// iterate over the records and build our
+			// update statement.
+		foreach ($recs as $column => $nada) {
+			array_push($update_elts, "$column = " . $this->Quote($recs[$column]));
+		}
+		$column_set = join(",", $update_elts);
+		$query = "update $table set " . $column_set . " where " . $where;
+		$res = mysql_Exec($this->conn, $query);
+		if(!$res) {
+			print "Query Failed : $sql\n";
+			die;
+		}
+	}
+
+		// this query routine is used for selects..
+	function Query ($sql) {
+		$res = mysql_Exec($this->conn, $sql);
+		if(!$res) {
+			print "Query : $sql\n";
+			die;
+		}
+		return $this->BuildResultSet($res);
+	}
+
+		// this query builds out a result set
+		// and returns it.
+	function BuildResultSet ($res) {
+
+			// an array to hold record objects
+		$records = array();
+			// define our iterator
+		$index = 0;
+			// iterate over the result set and build the recordset object
+		while($index < mysql_NumRows($res) && $row = pg_fetch_row($res, $index)) {
+				// lets grab a raw as an associative array
+			$row_data = mysql_fetch_array($res, $index, PGSQL_ASSOC);
+				// init a new record object
+			$Record = New Record();
+				// load the record
+			$Record->LoadArray($row_data);
+			$index++;
+		}
+	}
+
+		// execute this routine (this thing needs to be deprecated)
+	function Exec ($sql) {
+		$res = mysql_db_query($this->dbase, $sql, $this->conn);
+		if(!$res) {
+			print "Query : $sql\n";
+			die;
+		}
+		return $res;
+	}
+
+		// function to escape strings
+	function Quote ($data) {
+		$new_data = "'" . ereg_replace("'", "''", $data) . "'";
+		print "converting $data to $new_data.<br>\n";
+		return $new_data;
+			// while nice, this routine requires php > 4.2
+		// $new_data = mysql_escape_string($data);
+		// return $new_data;
+	}
+
+		// num rows function
+	function NumRows ($res) {
+		return mysql_num_rows($res);
+	}
+
+		// fetch row routine
+	function FetchRow ($res) {
+		return mysql_fetch_row($res);
+	}
+}
+
+?>

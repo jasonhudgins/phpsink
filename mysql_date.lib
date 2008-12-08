@@ -1,0 +1,207 @@
+<?
+
+	// mysql utility functions
+	// various authors
+
+	//take a user-entered date value and express it in MySQL's date format
+	// ***Use this to parse date input from a form into a MySQL database.
+function mysql_cvdate($s) {
+	return timestamp_to_mysql_date(cvdate($s));
+}
+
+	// we use UNIX's time specification as the base specification
+function mysql_datetime_to_human($dt) { 
+	$yr=strval(substr($dt,0,4));
+	$mo=strval(substr($dt,5,2));
+	$da=strval(substr($dt,8,2));
+	$hr=strval(substr($dt,11,2));
+	$mi=strval(substr($dt,14,2));
+
+	return date("m/d/Y H:i", mktime ($hr,$mi,0,$mo,$da,$yr));
+}
+
+function mysql_date_to_human($dt) { 
+
+		//intercept mysql's default ZERO date value.
+	if ($dt=="0000-00-00") return '';
+
+	$yr=strval(substr($dt,0,4)); 
+	$mo=strval(substr($dt,5,2)); 
+	$da=strval(substr($dt,8,2)); 
+
+	return date("m/d/Y", mktime (0,0,0,$mo,$da,$yr)); 
+} 
+
+function mysql_timestamp_to_human($dt) { 
+	$yr=strval(substr($dt,0,4)); 
+	$mo=strval(substr($dt,4,2)); 
+	$da=strval(substr($dt,6,2)); 
+	$hr=strval(substr($dt,8,2)); 
+	$mi=strval(substr($dt,10,2)); 
+
+	return date("m/d/Y H:i", mktime ($hr,$mi,0,$mo,$da,$yr)); 
+}
+
+	// converts a mysql timestamp into a unix timestamp 
+function mysql_timestamp_to_timestamp($dt) {
+	$yr=strval(substr($dt,0,4)); 
+	$mo=strval(substr($dt,4,2)); 
+	$da=strval(substr($dt,6,2)); 
+	$hr=strval(substr($dt,8,2)); 
+	$mi=strval(substr($dt,10,2)); 
+	$se=strval(substr($dt,10,2)); 
+
+	return mktime($hr,$mi,$se,$mo,$da,$yr); 
+} 
+
+function mysql_datetime_to_timestamp($dt) { 
+	$yr=strval(substr($dt,0,4)); 
+	$mo=strval(substr($dt,5,2)); 
+	$da=strval(substr($dt,8,2)); 
+	$hr=strval(substr($dt,11,2)); 
+	$mi=strval(substr($dt,14,2)); 
+	$se=strval(substr($dt,17,2)); 
+
+	return mktime($hr,$mi,$se,$mo,$da,$yr); 
+} 
+
+function timestamp_to_mysql_timestamp($ts) { 
+	$d=getdate($ts); 
+	$yr=$d["year"]; 
+	$mo=$d["mon"]; 
+	$da=$d["mday"]; 
+	$hr=$d["hours"]; 
+	$mi=$d["minutes"]; 
+	$se=$d["seconds"]; 
+
+	return sprintf("%04d%02d%02d%02d%02d%02d",$yr,$mo,$da,$hr,$mi,$se); 
+} 
+
+function timestamp_to_mysql_date($ts) { 
+	$d=getdate($ts); 
+
+	$yr=$d["year"]; 
+	$mo=$d["mon"]; 
+	$da=$d["mday"]; 
+
+	return sprintf("%04d-%02d-%02d",$yr,$mo,$da); 
+} 
+
+	// for two timestamp format dates, returns the plain english 
+	// difference between them.
+	//note these dates are UNIX timestamps
+function timeleft($begin,$end) { 
+
+	$dif=$end-$begin; 
+
+	$years=intval($dif/(60*60*24*365)); 
+	$dif=$dif-($years*(60*60*24*365)); 
+
+	$months=intval($dif/(60*60*24*30)); 
+	$dif=$dif-($months*(60*60*24*30)); 
+
+	$weeks=intval($dif/(60*60*24*7)); 
+	$dif=$dif-($weeks*(60*60*24*7)); 
+
+	$days=intval($dif/(60*60*24)); 
+	$dif=$dif-($days*(60*60*24)); 
+
+	$hours=intval($dif/(60*60)); 
+	$dif=$dif-($hours*(60*60)); 
+
+	$minutes=intval($dif/(60)); 
+	$seconds=$dif-($minutes*60); 
+
+	$s='';
+
+	if ($weeks<>0) $s.= $weeks." weeks "; 
+	if ($days<>0) $s.= $days." days "; 
+	if ($hours<>0) $s.= $hours." hours "; 
+	if ($minutes<>0) $s.= $minutes." minutes "; 
+
+	return $s; 
+} 
+
+	// this function takes a "human" date and converts it into a UNIX 
+	// timestamp, zero if error.
+	// this function supports dash,slash or space delimiting, 
+	// numeric/english months, and two-digit years.
+function cvdate($s) { 
+		// what is the delimiting character? (support space, slash, dash)
+	$delimiter = '';
+	if (strpos($s,"-")>0) $delimiter="-"; 
+	if (strpos($s,"/")>0) $delimiter="/"; 
+	if (strpos($s," ")>0) $delimiter=" "; 
+
+	if ($delimiter=="") return 0; 
+
+		// chop it up
+	$p1=strpos($s,$delimiter); 
+	$p2=strpos($s,$delimiter,$p1+1); 
+
+	$x=substr($s,0,$p1); 
+	$y=substr($s,$p1+1,$p2-$p1); 
+	$z=substr($s,$p2+1); 
+
+		// the last value is always the year, so check it for 2- to 4-digit 
+		// convertion
+	if (intval($z)<100) { 
+    if (intval($z)>69) $z=strval(1900+intval($z)); 
+		else $z=strval(2000+intval($z)); 
+	} 
+
+		// intelligently select which converter to use
+		// (default is M/D/Y, but if the month is "spelled out" then the format 
+		// is D/M/Y)
+	if(intval($y)==0) { 
+		return cvdate_english($x,$y,$z); 
+	} 
+	else { 
+		return cvdate_numeric($x,$y,$z); 
+	} 
+} 
+
+	// just a helper function
+function cvdate_english($d,$m,$y) { 
+	$d2=0; $m2=0; $y2=0; 
+	$d2=intval($d); 
+ 
+	$m=strtolower($m); 
+	switch(substr($m,0,3)) { 
+		case "jan": $m2=1; break; 
+		case "feb": $m2=2; break; 
+		case "mar": $m2=3; break; 
+		case "apr": $m2=4; break; 
+		case "may": $m2=5; break; 
+		case "jun": $m2=6; break; 
+		case "jul": $m2=7; break; 
+		case "aug": $m2=8; break; 
+		case "sep": $m2=9; break; 
+		case "oct": $m2=10; break; 
+		case "nov": $m2=11; break; 
+		case "dec": $m2=12; break;	 
+	} 
+
+	$y2=intval($y); 
+
+		// check for errors!
+	if (($d2==0)||($m2==0)||($y2==0)) return 0; 
+
+	return mktime(0,0,0,$m2,$d2,$y2); 
+} 
+
+	// just a helper function
+function cvdate_numeric($m,$d,$y) { 
+	$d2=0; $m2=0; $y2=0; 
+
+	$d2=intval($d); 
+	$m2=intval($m); 
+	$y2=intval($y); 
+
+		// check for errors!
+	if (($d2==0)||($m2==0)||($y2==0)) return 0; 
+
+	return mktime(0,0,0,$m2,$d2,$y2); 
+} 
+
+?>

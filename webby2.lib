@@ -1,0 +1,58 @@
+<?php
+
+	// our includes
+	include('/usr/local/php_lib/template2.lib');
+
+	// this is the php version of the Webby module 
+class Webby {
+
+		// the constructor
+	function Webby ($template_dir) {
+
+			// create a ref to our template object
+		$this->template = new Template($template_dir);	
+	}
+
+		// this routine decides what template we are going
+		// to use for our output.
+	function load_template ($template_file) {
+			// set the internal var
+		$this->template_file = $template_file;
+	}
+
+		// this routine returns an associative 
+		// array containing our form data
+	function form_data ($HTTP_POST_VARS) {
+			// placeholder for form_data
+		$form_data = array();
+
+			// iterate over HTTP_POST_VARS and
+			// build our array, call stripslashes
+			// to remove mysterious escaping. 
+		foreach($HTTP_POST_VARS as $var => $nada) {
+			$form_data[$var] = stripslashes($HTTP_POST_VARS[$var]);
+  	}
+
+			// return the new form_data array
+		return $form_data;
+	}
+
+		// call this function to set a template var 
+	function set_var ($var, $value) {
+			// registar the value in the template object.
+		$this->template->set_var($var, $value);
+	}
+	
+		// our homebrew destructor.
+	function destroy () {
+		if(!$this->template_file) {
+			print "Template file was not set or specified in Webby object.<br>\n";
+		}
+			// spit out our content
+		print $this->template->SpitContent($this->template_file);
+	}
+
+	// end of Webby Class
+}
+
+?>

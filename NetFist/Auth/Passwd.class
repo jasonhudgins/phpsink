@@ -1,0 +1,135 @@
+<?
+		// crypt password authentication class
+		// Author : Jason Hudgins <jason@netfist.com>
+	require_once("$PHP_LIB/mysql_date.lib");
+
+class Passwd {
+			
+			// global that stores the passwd lookup hash
+	var $PASSWD_TABLE = array();
+			// global where we store our sql object for logging logins.
+	var $SQL;
+			// this is where we store our log table
+	var $logTable;
+			// this is where we store our logging identity (realm, site, etc)
+	var $ident;
+	// debug variable
+	var $debug = 0;
+	
+			// the constructor
+	function Passwd($passwdFile, $altPasswdFile = '', $debug) {
+
+		$this->debug = $debug;
+
+			// if this password file isn't valid, then just die, cause
+			// this class won't work without one.
+		if(!$passwdFile) {
+			print "Missing password file argument!\n";
+			die;
+		}
+
+			// open the file for reading
+		if(!$fileData = file($passwdFile)) {
+			print "Couldn't open password file for reading!\n";
+			die;
+		}
+
+			// iterate over the array and build the password lookup	
+			// table
+		foreach($fileData as $line) {
+			$authData = preg_split('/:/', $line);
+			$this->PASSWD_TABLE[$authData[0]] = chop($authData[1]);
+		}
+
+			// if we have an alternate password file, import it too
+		if($altPasswdFile) {
+				// open the file for reading
+			if(!$fileData = file($altPasswdFile)) {
+				print "Couldn't open alternate password file for reading!\n";
+				die;
+			}
+
+				// iterate over the array and add to the password lookup	
+				// table
+			foreach($fileData as $line) {
+				$authData = preg_split('/:/', $line);
+				$this->PASSWD_TABLE[$authData[0]] = chop($authData[1]);
+			}
+		}
+	}
+
+			// check auth method looks for a cookie value that indicates
+			// a valid login, returns 1 if it finds it and 0 if it doesn't
+	function checkAuth() {
+		if ($this->debug) {
+			print "Checking auth for $SID";
+		}
+	
+		if($_SESSION['authed'] == 1) {
+			return 1;
+		}
+		return 0;
+	}
+
+	// this function makes sure the session path is writable
+  // i've had permission problems that are hard to debug.
+	function checkSessionSave() {
+		$save_path = session_save_path();
+		if(!touch($save_path . '/writetest.tmp')) {
+			return false;	
+		}
+		unlink($save_path . '/writetest.tmp');
+		return true;
+	}
+
+		// login method accepts user and pass, compares it to the table,
+		// and returns true or false, it ALSO sets the session variable
+		// correctly
+	function login($user, $pass) {
+
+		if(!$this->checkSessionSave()) {
+		 	print "Fatal Error, cannot write session data to " . session_save_path();
+			die;
+		}
+
+			// crypt the password
+		$crypted = crypt($pass, $this->PASSWD_TABLE[$user]);
+		if($this->PASSWD_TABLE[$user] == $crypted) {
+			$this->logLogin($user);
+			$_SESSION["authed"] = 1;
+			return 1;
+		}
+		return 0;
+	}
+
+		// method that logs the login (if everything is in order)
+	function logLogin($user) {
+			// if everything is good then do the logging
+		if($this->SQL && $this->ident && $this->logTable) {
+			$dataMap = array();
+			$dataMap['user'] = $user;
+			$dataMap['date'] = timestamp_to_mysql_timestamp(time());
+			$dataMap['site'] = $this->ident;
+			$dataMap['remote_addr'] = getenv('REMOTE_ADDR');
+			$this->SQL->Insert($this->logTable, $dataMap);
+		}
+	}
+
+		// method which sets the table we log too
+	function setLogTable($table) {
+		$this->logTable = $table;
+	}
+
+		// method which sets our logging realm/identity	
+	function setLogIdent($ident) {
+		$this->ident = $ident;
+	}
+
+		// method used to store a reference to our sql object
+		// which will be used for login logging
+	function setSQL($sql) {
+		$this->SQL = $sql;
+	}
+}
+
+?>

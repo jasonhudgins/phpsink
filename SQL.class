@@ -1,0 +1,41 @@
+<?
+
+		// our includes
+include('/usr/local/php_lib/SQL/Drivers/MySql.class');
+
+	// this is my postgres sql abstraction layer
+class SQL {
+
+		// the constructor
+	function SQL ($SqlConfig) {
+
+			// some sanity checks
+		$SqlConfig->Verify();
+		$this->SQL_CONFIG = $SqlConfig;
+
+			// init the connection
+		$this->_Connect();	
+	}
+
+		// method to perform a select query
+	function Select ($Query) {
+		$RecordSet = $this->DRIVER->Select($Query);
+
+		die("performed SQL select query");	
+	}
+
+		// method to make connection to the database 
+	function _Connect () {
+
+			// load the appropriate driver
+		if($this->SQL_CONFIG->ServerType(NULL) == 'mysql') {
+			$this->DRIVER = new MySql($this->SQL_CONFIG);				
+		}
+		else {
+			die('unknown driver: ' . $this->SQL_CONFIG->ServerType(NULL) . "\n");
+		}
+
+	}
+}
+
+?>

@@ -1,0 +1,29 @@
+<?
+	// the AVI Class
+	// Author : Jason Hudgins <jason@netfist.com>
+
+		// include base class
+	require_once('MediaItem.class');
+
+		// class implementation
+	class AVI extends MediaItem {
+
+		var $FILE_NAME;
+
+			// constructor method
+		function AVI () {
+		}
+
+			// method to return the filename
+		function getFileName () {
+			return $this->FILE_NAME;
+		}
+
+      // method to set the filename
+    function setFileName ($fileName) {
+      $this->FILE_NAME = $fileName;
+    }
+
+
+	}
+?>

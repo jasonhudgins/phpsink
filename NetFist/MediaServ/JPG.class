@@ -1,0 +1,58 @@
+<?
+	// the JPG Class
+	// Author : Jason Hudgins <jason@netfist.com>
+
+	require_once('MediaItem.class');
+
+		// class implementation
+	class JPG extends MediaItem {
+		var $SQL;
+
+			// constructor method
+		function JPG ($SQL = 0, $md5 = 0) {
+				// set the sql object
+			$this->SQL = $SQL;
+				// set the md5 tag
+			$this->setMD5($md5);
+		}
+
+			// return the jpg data
+		function getData () {
+
+				// quick sanity check
+			if(!$this->MD5) {
+				print "nasty error, no MD5 passed to getData";
+				exit;
+			}
+
+				// only query for the data if we don't already have it!
+			if(!$this->DATA) {
+					// pop the query and grab the data
+				$res = $this->SQL->query("select * from jpg where md5 = '" . $this->MD5 . "'");
+					// set jpg object attributes
+				$this->setData($res[0]['data']);
+					// set the date
+				$this->setDate(mysql_datetime_to_timestamp($res[0]['dateAdded']));
+			}
+
+			return $this->DATA;
+		}
+
+			// method to return the date
+		function getDate () {
+
+				// only query for the data if we don't already have it!
+			if(!$this->DATE) {
+					// pop the query and grab the data
+				$res = $this->SQL->query("select dateAdded from jpg where md5 = '" . $this->MD5 . "'");
+					// set the date
+				$this->setDate(mysql_datetime_to_timestamp($res[0]['dateAdded']));
+			}
+
+			return $this->DATE;
+		}
+
+
+
+	}
+?>

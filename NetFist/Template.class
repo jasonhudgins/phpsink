@@ -1,0 +1,86 @@
+<?
+	// Template.class
+	// Author : Jason Hudgins <jason@netfist.com>
+
+class Template {
+
+		// an array with a useless name
+	var $REGISTERED_VARS	= array();
+		// path to the templates
+	var $TEMPLATE_DIR;
+
+		// simple constructor	
+	function Template($path){
+		$this->TEMPLATE_DIR = $path;
+	}
+
+		// method to register a template value
+	function regVar($key, $val){
+		$this->REGISTERED_VARS[$key] = $val;
+	}
+
+		// method to register a hash of of values
+	function regHash($dataHash) {
+		foreach($dataHash as $key => $value) {
+				// perform the replacement
+			$this->regVar($key, $value);
+		}
+	}
+
+		// routine to filter and output the template, using a 
+		// string, rather than a file.
+	function stringSpitContent($template) {
+
+			// sanity check to make sure our template variable
+			// exists
+		if(!$template) {
+			print "Template->SpitContent(), $template variable is null!";
+			die;
+		}
+
+			// iterate through our registered variables
+			// and perform our replacements
+		foreach($this->REGISTERED_VARS as $key => $value) {
+				// perform the replacement
+			$template = preg_replace("/\\$$key(\W)/", "$value\\1", $template);
+		}
+
+			// remove all unsupplied keys from the results
+		$template = preg_replace("/\\$\w+/", '', $template);
+
+			// return post-filtered results
+		return $template;
+	}
+
+		// routine to filter and output the template	
+	function spitContent($template, $flags = 0) {
+			// sanity check to make sure our template is present.
+		if(!$template) {
+			print "Template->SpitContent(), $template variable is null!";
+			die;
+		}
+
+			// set template file
+		$templateFile = "$this->TEMPLATE_DIR/$template";
+
+			// read all the data from the file into our result variable
+		$result = join('', file($templateFile));
+			
+			// iterate through our registered variables
+			// and perform our replacements
+		foreach($this->REGISTERED_VARS as $key => $value) {
+				// perform the replacement
+			$result = str_replace("\$$key", $value, $result);
+		}
+
+			// remove all unsupplied keys from the results
+		if($flags != 1) {
+			$result = preg_replace("/\\$\w+/", '', $result);
+		}
+
+			// return post-filtered results
+		return $result;
+	}
+}
+
+?>

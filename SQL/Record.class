@@ -1,0 +1,31 @@
+<?
+// the Record class
+// author : Jason Hudgins <jason@netfist.com>
+	
+	// this is our sql Record object
+class Record {
+
+		// this is our constructor
+	function Record () {
+	
+			// our internal column associative array
+		$this->column_data = array();
+	}
+
+		// this routine loads us up from an associative array
+	function LoadArray ($row_data) {
+			// iterate over the passed array and set our values
+		foreach ($row_data as $column => $data) {
+				// call set column
+			$this->SetColumn($column, $data);
+		}
+	}
+
+		// this method sets an internal value
+	function SetColumn ($column, $data) {
+			// set the internal column data
+		$this->column_data['$column'] = $data;
+	}
+}
+
+?>

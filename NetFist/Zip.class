@@ -1,0 +1,219 @@
+<?
+	// outer class definition
+class Zip {
+
+	// globals, but i'm not sure which one we will use just 
+	// yet
+var $ZIP_BUFFER;
+
+	// our constructor method
+function Zip ($fileData) {
+
+		// init a result list to store the headers of each file we add
+	$header_list = array();
+	$header_count = 0;
+	
+	foreach($fileData as $filename => $data) {
+
+			// allocate map for each file header
+		$file_header = array();
+			// call the addfile method
+		$this->addFile($filename, $data, $file_header);
+			// add the file header to the result list
+		$header_list[$header_count++] = $file_header;
+	}
+
+		// store an offset of the lenght of the zip buffer
+	$central_dir_offset = strlen($this->ZIP_BUFFER);
+
+		// init a result list (which is used later for somethin)
+	$info_list = array();
+
+		// now iterate over the result list and do some stuff
+	$index = 0;
+	$v_count = 0;
+	while($index < sizeof($header_list)) {
+		$this->writeCentralFileHeader($header_list[$index]);
+		$this->ConvertHeader2FileInfo($header_list[$index], $info_list[$index]);
+		$index++;
+		$v_count++;
+	}
+
+		// create a null commment
+	$v_comment = '';
+
+		// calculate the size of the central header
+	$central_header_size = strlen($this->ZIP_BUFFER) - $central_dir_offset;
+
+		// now we create the central dir footer
+	$this->writeCentralHeader($v_count++, $central_header_size, $central_dir_offset, $v_comment);
+	
+} // end Zip constructor
+
+	// method to add a file
+function addFile ($filename, $data, &$file_header) {
+
+		// set header map values
+	clearstatcache();
+	$file_header['version'] = 20;
+	$file_header['version_extracted'] = 10;
+	$file_header['flag'] = 0;
+	$file_header['compression'] = 0;
+	$file_header['mtime'] = time();
+	$file_header['crc'] = 0;
+	$file_header['compressed_size'] = 0;
+	$file_header['size'] = strlen($data);
+	$file_header['filename_len'] = strlen($filename);
+	$file_header['extra_len'] = 0;
+	$file_header['comment_len'] = 0;
+	$file_header['disk'] = 0;
+	$file_header['internal'] = 0;
+	$file_header['external'] = 0xFE49FFE0;
+	$file_header['offset'] = 0;
+	$file_header['filename'] = $filename;
+	$file_header['stored_filename'] = $filename;
+	$file_header['extra'] = '';
+	$file_header['comment'] = '';
+	$file_header['status'] = 'ok';
+	$file_header['index'] = -1;
+
+		// ----- Check the path length
+	if(strlen($p_header['stored_filename']) > 0xFF) {
+		print "$filename is too long to store in a zipfile!";
+		exit;
+	}
+		
+		// read in the binary data and pack it somehows
+	$binary_data = pack('a' . strlen($data), $data);
+		// gzip encode the binary data (note, creating a new variable for this data could be un-necessary)
+	$zipped_data = gzencode($binary_data);
+		// read the gzip file header
+	$data_header = unpack('a1id1/a1id2/a1cm/a1flag/Vmtime/a1xfl/a1os', substr($zipped_data, 0, 10));
+
+		// read the os value
+	$data_header['os'] = bin2hex($data_header['os']);
+
+		// read in the footer (last 8 bytes i think)
+	$data_footer = unpack('Vcrc/Vcompressed_size',	substr($zipped_data, (strlen($zipped_data) - 8), 8));
+
+		// set the file header compression attribute
+	$file_header['compression'] = ord($data_header['cm']);
+
+		// read in the crc value
+	$file_header['crc'] = $data_footer['crc'];
+
+		// read in the compressed size of the file
+	$file_header['compressed_size'] = strlen($zipped_data);
+
+		// try to write the file header
+	$this->writeFileHeader($file_header);
+
+		// write the binary data to the zip buffer
+	$this->ZIP_BUFFER .= pack('a' . (strlen($zipped_data) - 10), substr($zipped_data, 10));
+}
+
+	// this should return all the compressed data
+function getData () {
+	return $this->ZIP_BUFFER;
+}
+
+	// method that returns the size in bytes of the zip buffer
+function getSize () {
+	return strlen($this->ZIP_BUFFER);
+}
+
+function ConvertHeader2FileInfo(&$file_header, &$result_info) {
+                                                                                                                    
+		// ----- Get the interesting attributes
+	$result_info['filename'] = $file_header['filename'];
+	$result_info['stored_filename'] = $file_header['stored_filename'];
+	$result_info['size'] = $file_header['size'];
+	$result_info['compressed_size'] = $file_header['compressed_size'];
+	$result_info['mtime'] = $file_header['mtime'];
+	$result_info['comment'] = $file_header['comment'];
+	$result_info['folder'] = ($file_header['external']==0x41FF0010);
+	$result_info['index'] = $file_header['index'];
+	$result_info['status'] = $file_header['status'];
+
+	return;
+}
+
+	// this method writes the central file header, whatever that is..
+function writeCentralFileHeader (&$file_header) {
+
+		// ----- Transform UNIX mtime to DOS format mdate/mtime
+	$v_date = getdate($file_header['mtime']);
+	$v_mtime = ($v_date['hours']<<11) + ($v_date['minutes']<<5) + $v_date['seconds']/2;
+	$v_mdate = (($v_date['year']-1980)<<9) + ($v_date['mon']<<5) + $v_date['mday'];
+
+		// ----- Packed data
+	$v_binary_data = pack("VvvvvvvVVVvvvvvVV", 0x02014b50, $file_header['version'], 
+			$file_header['version_extracted'], $file_header['flag'], $file_header['compression'], $v_mtime, 
+			$v_mdate, $file_header['crc'], $file_header['compressed_size'], $file_header['size'],
+			strlen($file_header['stored_filename']), $file_header['extra_len'], $file_header['comment_len'],
+			$file_header['disk'], $file_header['internal'], $file_header['external'], $file_header['offset']);
+
+		// write first 46 bytes of this data to the zip buffer
+	$this->ZIP_BUFFER .= substr($v_binary_data, 0, 46);
+
+	if(strlen($file_header['stored_filename']) != 0) {
+		$this->ZIP_BUFFER .= $file_header['stored_filename'];
+	}
+	if($file_header['extra_len'] != 0) {
+		$this->ZIP_BUFFER .= substr($file_header['extra'], 0, $file_header['extra_len']);
+	}
+	if ($file_header['comment_len'] != 0) {
+		$this->ZIP_BUFFER .= substr($file_header['comment'], 0, $file_header['comment_len']);
+	}
+	return;
+}
+
+	// this method writes the central header or whatever
+function writeCentralHeader ($p_nb_entries, $p_size, $p_offset, $p_comment) {
+
+		// ----- Packed data
+	$v_binary_data = pack("VvvvvVVv", 0x06054b50, 0, 0, $p_nb_entries, $p_nb_entries, $p_size, $p_offset,
+		strlen($p_comment));
+
+		// ----- Write the 22 bytes of the header/footer to the zip file
+	$this->ZIP_BUFFER .= $v_binary_data;
+
+		// ----- Write the variable fields
+	if (strlen($p_comment) != 0) {
+		$this->ZIP_BUFFER .= '';
+	}
+}
+
+
+	// this method is for writing the file header
+function writeFileHeader (&$file_header) {
+
+		// ----- Store the offset position of the file
+	$file_header['offset'] = strlen($this->ZIP_BUFFER);
+
+		// ----- Transform UNIX mtime to DOS format mdate/mtime
+	$v_date = getdate($file_header['mtime']);
+	$v_mtime = ($v_date['hours']<<11) + ($v_date['minutes']<<5) + $v_date['seconds']/2;
+	$v_mdate = (($v_date['year']-1980)<<9) + ($v_date['mon']<<5) + $v_date['mday'];
+
+    // ----- Packed data
+	$v_binary_data = pack("VvvvvvVVVvv", 0x04034b50, $file_header['version'], $file_header['flag'],
+		$file_header['compression'], $v_mtime, $v_mdate,
+		$file_header['crc'], $file_header['compressed_size'], $file_header['size'],
+		strlen($file_header['stored_filename']), $file_header['extra_len']);
+
+		// ----- Write the first 30 bytes of the header in the archive
+	$this->ZIP_BUFFER .= substr($v_binary_data, 0, 30);
+
+		// ----- Write the variable fields
+	if (strlen($file_header['stored_filename']) != 0) {
+		$this->ZIP_BUFFER .= $file_header['stored_filename'];
+	}
+	if($file_header['extra_len'] != 0) {
+		$this->ZIP_BUFFER .= $file_header['extra'];
+	}
+}
+
+} // end class definition
+
+?>

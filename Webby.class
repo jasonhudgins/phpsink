@@ -1,0 +1,125 @@
+<?php
+
+	// our includes
+include('ReadConf.class');		
+include('Session.class');		
+include('SQL/SqlConfig.class');		
+	
+	// this is the php version of the Webby module 
+class Webby {
+
+		// the constructor
+	function Webby ($template_dir, $acl_user, $acl_pass) {
+
+			// store the template dir
+		$this->TEMPLATE_DIR = $template_dir; 
+
+			// init a new readconf object
+		$Conf = new ReadConf('/usr/local/etc/acl_system.conf');
+			// init a new SqlConfig object
+		$SqlConfig = new SqlConfig('');
+
+			// obtain and store dbase connection data from readconf object
+		$SqlConfig->ServerType($Conf->config('server_type'));
+		$SqlConfig->Database($Conf->config('database'));
+		$SqlConfig->Host($Conf->config('host'));
+		$SqlConfig->Port($Conf->config('port'));
+		$SqlConfig->User($Conf->config('user'));
+		$SqlConfig->Password($Conf->config('pass'));
+
+			// store acl system auth credentials
+		$this->ACL_SYSTEM_USER = $acl_user;
+		$this->ACL_SYSTEM_PASSWORD = $acl_pass;
+
+			// sanity checks
+		$SqlConfig->Verify();
+		if(!$this->ACL_SYSTEM_USER) {
+			die("acl system user is not defined!");
+		}
+		else if(!$this->ACL_SYSTEM_PASSWORD) {
+			die("acl system password is not defined!");
+		}
+	
+			// store the sql configuration
+		$this->SQL_CONFIG = $SqlConfig;
+
+			// init the session
+		$this->_InitSession();
+
+			// check access perms
+
+			// create a ref to our template object
+		$this->template = new Template($template_dir);	
+	}
+
+		// this routine returns an associative 
+		// array containing our form data
+	function form_data ($HTTP_POST_VARS) {
+			// placeholder for form_data
+		$form_data = array();
+
+			// iterate over HTTP_POST_VARS and
+			// build our array, call stripslashes
+			// to remove mysterious escaping. 
+		foreach($HTTP_POST_VARS as $var => $nada) {
+			$form_data[$var] = stripslashes($HTTP_POST_VARS[$var]);
+  	}
+
+			// return the new form_data array
+		return $form_data;
+	}
+
+		// method to generate a cookie
+	function _GenCookie ($SessionID, $Seconds, $CookiePath) {
+			// assemble cookie elements
+		$Expire = 'expires: ' . date('D, d-M-Y H:i:s', time() + $Seconds) . ' CST;';
+		$Path = "path=$CookiePath;";
+		$Domain = 'domain=' . $_SERVER['SERVER_NAME'] . ';';
+			// return cookie header
+		return "Set-Cookie: session_id=$SessionID; $Expire $Path $Domain";
+	}
+
+		// method to generate a session id
+	function _GenSessionID () {
+		return md5(time() . $_SERVER['REMOTE_ADDR']);
+	}
+
+		// method to init the session
+	function _InitSession () {
+		$SessionID = $this->_ReadCookie();
+
+			// if we don't have a session id the get a new one
+		if(!$SessionID) {
+			$SessionID = $this->_GenSessionID();
+		}
+
+			// determine cookie path
+		$Parts = split('/', $_SERVER['SCRIPT_NAME']);
+		array_pop($Parts);
+		$CookiePath .= join('/', $Parts);
+
+			// create 1 hour cookie and save it 
+		$this->COOKIE = $this->_GenCookie($SessionID, 3600, $CookiePath);
+
+			// now init a session object
+		$this->SESSION_OBJ = new Session($SessionID, $this->SQL_CONFIG);
+	
+		die("cookie is $this->COOKIE\n");
+	}
+
+		// method that reads the cookie out of the header
+	function _ReadCookie () {
+		$Headers = getallheaders();
+
+		foreach ($Headers as $Header => $Value) {
+			if($Header == 'Cookie') {
+				return $Value;
+			}
+		}		
+	}
+
+
+	// end of Webby Class
+}
+
+?>

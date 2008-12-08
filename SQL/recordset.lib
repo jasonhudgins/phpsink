@@ -1,0 +1,11 @@
+<?
+		// this is our sql recordset object
+class RecordSet () {
+
+		// this is our constructor
+	function RecordSet () {
+
+	}
+}
+
+?>

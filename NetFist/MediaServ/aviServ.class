@@ -1,0 +1,202 @@
+<?
+	// aviServ class
+	// Author : Jason Hudgins <jason@netfist.com>
+
+		// a couple of necessary includes
+	require_once("$PHP_LIB/NetFist/MySQL.class");
+	require_once("$PHP_LIB/mysql_date.lib");
+	require_once("$PHP_LIB/NetFist/MediaServ/AVI.class");
+
+	// our aviServ class
+class aviServ {
+
+	var $DB_SERVER;
+	var $DB_NAME;
+	var $DB_USER;
+	var $DB_PASS;
+
+		// the constructor method
+	function aviServ ($db_server, $db_name, $db_user, $db_pass) {
+
+			// check for bad values
+		if(!$db_server || !$db_name || !$db_user) {
+			print "aviServ object init'd with bad arguments.<br>";
+			exit();
+		}
+
+			// set object variables
+		$this->DB_SERVER = $db_server;
+		$this->DB_NAME = $db_name;
+		$this->DB_USER = $db_user;
+		$this->DB_PASS = $db_pass;
+	}
+
+		// method to add the jpg
+	function addAVI ($files) {
+			
+			// init the return array
+		$md5Results = array();
+			// set chunksize
+		$chunkSize = (1024 * 512);
+
+			// init a new sql connection
+		$sql = new SQL($this->DB_SERVER, $this->DB_NAME, $this->DB_USER, 
+			$this->DB_PASS);
+
+			// iterate over each item in the $files hash
+		$index = 0;
+		foreach($files as $file => $filedata) {
+				// jump to file on error
+			if($filedata['error'] != 0) {
+					print "Error with upload of " . $filedata['name'] . '<br>';
+
+					if($filedata['error'] == 1) {
+						print "The uploaded file exceeds the MAX_FILE_SIZE directive " .
+							"that was specified in the html form.<br>";
+					}
+					if($filedata['error'] == 2) {
+						print "The uploaded file exceeds the upload_max_filesize " .
+							"directive in php.ini.<br>";
+					}
+					if($filedata['error'] == 3) {
+						print "The uploaded file was only partially uploaded.<br>";
+					}
+					if($filedata['error'] == 4) {
+						print "No file was uploaded.<br>";
+					}
+
+					continue;	
+			}
+
+        // before we do the insert, see if this file exists already
+      $res = $sql->Query("select md5 from avi where md5 = '" .
+        md5_file($filedata['tmp_name']) . "'");
+        // if it is, then stick that in the result array
+				// and jump to the next file 
+      if($res[0]['md5']) {
+        $md5Results[$index] = $res[0]['md5'];
+				$index++;
+				continue;
+      }
+
+				// open a file descriptor
+			$fd = fopen ($filedata['tmp_name'], 'rb');
+				// read the data from the descriptor
+			$contents = fread($fd, filesize($filedata['tmp_name']));
+				// close the file desciptor
+			fclose($fd);
+				// init an array to hold our segments
+			$segments = array();
+				// determine number of segments
+			$numSegments = strlen($contents) / $chunkSize;
+				// init a counter
+			$count = 0;
+				// iterate over each chunk and insert it into the dbase
+			while($count <= $numSegments) {
+						// init a hash to store our data
+					$dataMap = array();
+						// set chunk data
+					$dataMap['data'] = substr($contents, $count * $chunkSize, $chunkSize);
+						// set the date added variable
+					$dataMap['dateAdded'] = timestamp_to_mysql_timestamp(time());
+						// store an md5 value
+					$dataMap['md5'] = md5_file($filedata['tmp_name']);
+						// set the segment
+					$dataMap['segment'] = $count;
+						// do the insert
+					$sql->Insert('avi', $dataMap);
+						// increment the count
+					$count++;
+			}
+				// store md5 results
+			$md5Results[$index] = md5_file($filedata['tmp_name']);
+				// update index counter
+			$index++;
+		}
+			// return array of inserted id's
+		return $md5Results;
+	}
+
+    // method to nuke a video from the database
+	function deleteVideo ($md5) {
+      // init a new sql connection
+    $sql = new SQL($this->DB_SERVER, $this->DB_NAME, $this->DB_USER,
+      $this->DB_PASS);
+      // call the delete
+    $sql->Delete('avi', "md5 = '$md5'");
+	}
+
+		// function to list all the videos in the database, not normally
+		// used
+	function listVideos () {
+
+			// init a new sql connection
+		$sql = new SQL($this->DB_SERVER, $this->DB_NAME, $this->DB_USER, 
+			$this->DB_PASS);
+
+		$results = $sql->Query("select id, md5 from avi");
+		$idArray = array();
+
+		foreach ($results as $record) {
+			array_push($idArray, $record['id']);
+		}
+
+		return $idArray;
+	}	
+
+		// this is deprecated and should be removed later
+	function getVideoOld ($id) {
+			// init a new AVI object
+		$AVI = new AVI();
+			// init a new sql connection
+		$sql = new SQL($this->DB_SERVER, $this->DB_NAME, $this->DB_USER, 
+			$this->DB_PASS);
+
+			// pop the query and grab the data
+		$res = $sql->query("select * from avi where id = '$id'");
+
+			// set the filename of the AVI
+		$AVI->setFileName($res[0]['filename']);
+
+			// iterate over segments and put them together
+		foreach ($res as $record) {
+			$AVI->appendData($record['data']);
+		}
+
+			// return the AVI object
+		return $AVI;
+	}
+
+		// return the image data for the image id in the database
+	function getVideo ($md5) {
+
+			// check for bad id
+		if(!$md5) {
+			error_log("getVideo is missing an md5!");
+			die;
+		}
+
+			// init a new AVI object
+		$AVI = new AVI();
+			// init a new sql connection
+		$sql = new SQL($this->DB_SERVER, $this->DB_NAME, $this->DB_USER, 
+			$this->DB_PASS);
+
+			// pop the query and grab the data
+		$res = $sql->query("select * from avi where md5 = '$md5' order by segment");
+			// set avi object attributes
+		$AVI->setDate(mysql_datetime_to_timestamp($res[0]['dateAdded']));
+		$AVI->setMD5($res[0]['md5']);
+		$AVI->setFileName($res[0]['filename']);
+
+			// iterate over segments and put them together
+		foreach ($res as $record) {
+			$AVI->appendData($record['data']);
+		}
+
+			// return the AVI object
+		return $AVI;
+	}
+}
+
+?>

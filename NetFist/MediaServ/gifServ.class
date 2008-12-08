@@ -1,0 +1,228 @@
+<?
+	// gifServ class
+	// Author : Jason Hudgins <jason@netfist.com>
+
+		// a couple of necessary includes
+	require_once("$PHP_LIB/NetFist/MySQL.class");
+	require_once("$PHP_LIB/mysql_date.lib");
+	require_once("$PHP_LIB/NetFist/MediaServ/GIF.class");
+
+	// our gifServ class
+class gifServ {
+
+	var $DB_SERVER;
+	var $DB_NAME;
+	var $DB_USER;
+	var $DB_PASS;
+
+		// the constructor method
+	function gifServ ($db_server, $db_name, $db_user, $db_pass) {
+
+			// check for bad values
+		if(!$db_server || !$db_name || !$db_user) {
+			print "gifServ object init'd with bad arguments.<br>";
+			exit();
+		}
+
+			// set object variables
+		$this->DB_SERVER = $db_server;
+		$this->DB_NAME = $db_name;
+		$this->DB_USER = $db_user;
+		$this->DB_PASS = $db_pass;
+	}
+
+		// method to add the gifs
+	function addGIF ($files) {
+
+			// array to store the md5 results	
+		$md5Results = array();
+
+			// init a new sql connection
+		$sql = new SQL($this->DB_SERVER, $this->DB_NAME, $this->DB_USER, 
+			$this->DB_PASS);
+
+			// iterate over each item in the $files hash
+		$index = 0;
+		foreach($files as $file => $filedata) {
+				// init a hash to store our data
+			$dataMap = array();
+				// open a file descriptor
+  		$fd = fopen ($filedata['tmp_name'], 'rb');
+
+				// skip tot the next iteration if this isn't
+				// a gif. (waiting for exif_imagetype)
+
+				// read the data from the descriptor
+			$contents = fread($fd, filesize($filedata['tmp_name']));
+				// close the file desciptor
+			fclose($fd);
+				// stick in the data
+			$dataMap['data'] = $contents;
+				// set the date added variable
+			$dataMap['dateAdded'] = timestamp_to_mysql_timestamp(time());
+				// store an md5 value
+			$dataMap['md5'] = md5_file($filedata['tmp_name']);
+
+			if(!$dataMap['md5']) {
+				print "No MD5 was found for " . $fileData['tmp_name'] . "\n";
+				die;
+			}
+
+				// before we do the insert, see if that particular image
+				// is already in the database
+			$query = "select md5 from gif where md5 = '" .  $dataMap['md5'] . "'";
+			$res = $sql->Query($query);
+
+				// if it is, then return that id
+			if($res[0]['md5']) {
+				$md5Results[$index] = $res[0]['md5'];
+				$index++;
+				continue;
+			}
+
+				// do the insert
+			$md5Results[$index] = $dataMap['md5'];
+			$sql->Insert('gif', $dataMap);
+			$index++;
+		}
+
+		return $md5Results;
+	}
+
+		// method to nuke an image from the database
+	function deleteImage ($md5) {
+			// init a new sql connection
+		$sql = new SQL($this->DB_SERVER, $this->DB_NAME, $this->DB_USER, 
+			$this->DB_PASS);
+			// call the delete
+		$sql->Delete('gif', "md5 = '$md5'");
+	}
+
+		// method to return a list of all the md5's in the gif database
+		// sorted by date	
+	function getMD5List ($startDate, $limit) {
+			// init a new sql connection
+		$sql = new SQL($this->DB_SERVER, $this->DB_NAME, $this->DB_USER, 
+			$this->DB_PASS);
+
+			// query db
+		$query = "
+			select
+				md5
+			from
+				gif
+			where
+				dateAdded > '$startDate'
+			order by dateAdded
+			limit $limit
+		";
+
+		$res = $sql->query($query);
+			// iterate over results and build return array	
+		$MD5List = array();
+		foreach($res as $rec) {
+			array_push($MD5List, $rec['md5']);	
+		}
+			// return results
+		return $MD5List;
+	}
+
+		// return the image data for the image id in the database
+	function getImage ($md5) {
+
+			// check for bad id
+		if(!$md5) {
+			error_log("getImage is missing an md5!");
+			die;
+		}
+
+			// init a new GIF object
+		$GIF = new GIF();
+			// init a new sql connection
+		$sql = new SQL($this->DB_SERVER, $this->DB_NAME, $this->DB_USER, 
+			$this->DB_PASS);
+			// pop the query and grab the data
+		$res = $sql->query("select * from gif where md5 = '$md5'");
+			// set gif object attributes
+		$GIF->setData($res[0]['data']);
+		$GIF->setDate(mysql_datetime_to_timestamp($res[0]['dateAdded']));
+
+			// return the GIF object
+		return $GIF;
+	}
+
+    // this is deprecated and should be removed later
+  function getImageOld ($id) {
+      // init a new GIF object
+    $GIF = new GIF();
+      // init a new sql connection
+    $sql = new SQL($this->DB_SERVER, $this->DB_NAME, $this->DB_USER,
+      $this->DB_PASS);
+
+      // pop the query and grab the data
+    $res = $sql->query("select * from gif where id = '$id'");
+
+      // iterate over segments and put them together
+    foreach ($res as $record) {
+      $GIF->appendData($record['data']);
+    }
+
+      // return the GIF object
+    return $GIF;
+  }
+
+
+
+	function getSquaredThumbnail($data, $thumbsize) {
+
+			// create image resource from data	
+		$src_img = imagecreatefromstring($data);
+			// grab x and y values
+		$x = imagesx($src_img);
+		$y = imagesy($src_img);
+			// calc scale ratio
+		$scale = min($thumbsize/$x, $thumbsize/$y);
+			// calc new width and height
+		$width = (int)($x * $scale);
+		$height = (int)($y * $scale);
+			// calc deltas
+		$deltaw = (int)(($thumbsize - $width)/2);
+		$deltah = (int)(($thumbsize - $height)/2);
+			// create destiniation image
+		$dst_img = imagecreate($thumbsize, $thumbsize);
+			// do the resize
+		imagecopyresized($dst_img, $src_img, $deltaw, $deltah, 0, 0, 
+			$width, $height, imagesx($src_img),imagesy($src_img));
+			// start capturing stdout
+		ob_start();
+			// write stream as gif to stdout
+		imageJPEG($dst_img);
+			// read stdout into variable
+		$imageData = ob_get_contents();
+			// flush stdout and stop capturing it
+		ob_end_clean();
+			// return the raw image data
+		return $imageData;
+	}
+
+    // function to list all the videos in the database, not normally
+    // used
+  function listImages () {
+
+      // init a new sql connection
+    $sql = new SQL($this->DB_SERVER, $this->DB_NAME, $this->DB_USER,
+      $this->DB_PASS);
+
+    $results = $sql->Query("select id, md5 from gif");
+    $idArray = array();
+
+    foreach ($results as $record) {
+      array_push($idArray, $record['id']);
+    }
+
+    return $idArray;
+  }
+
+
+}
+?>

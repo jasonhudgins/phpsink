@@ -1,0 +1,33 @@
+<?
+
+    // our includes
+  include('/usr/local/php_lib/postgres.lib');
+
+	// this is the contact object done in php.. how beautiful we are.
+class Contact {
+
+		// this is our constructor for contact object.
+	function Contact () {
+			// init our sql object
+		$this->sql = new SQL('pagez', 'thanatos');
+	}
+
+		// this routine loads a contact from the
+		// database.
+	function ($contact_id) LoadContact {
+			// formulate our query
+		$query = "
+			select
+				*
+			from
+				contacts
+			where
+				contact_id = $contact_id
+		";
+			// pop it
+	}
+
+	// end of Contact class
+}
+
+?>

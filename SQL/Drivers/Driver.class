@@ -1,0 +1,16 @@
+<?
+// Generic SQL Driver Class
+// Author : Jason Hudgins <jason@netfist.com>
+
+	class Driver {
+
+
+		function Driver ($SqlConfig) {
+
+			// sanity checks
+
+		}
+
+	}
+
+?>

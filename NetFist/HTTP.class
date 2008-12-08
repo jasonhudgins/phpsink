@@ -1,0 +1,26 @@
+<?
+		// Standard HTTP utility functions
+		// Author : Jason Hudgins <jason@netfist.com>
+
+class HTTP {
+
+		// this routine returns an associative 
+		// array containing our form data
+	function formData ($httpData) {
+
+			// placeholder for form_data
+		$formData = array();
+
+			// iterate over HTTP_POST_VARS and
+			// build our array, call stripslashes
+			// to remove mysterious escaping. 
+		foreach($httpData as $key => $value) {
+			$formData[$key] = stripslashes($value);
+ 		}
+
+			// return the new form_data array
+		return $formData;
+	}
+}
+
+?>
