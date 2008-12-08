@@ -1,25 +1,20 @@
 <?
 	// Template.class
-	// Author : Jason Hudgins <jason@netfist.com>
+	// Author : Jason Hudgins <jasonleehudgins@gmail.com>
 
 class Template {
 
-		// an array with a useless name
 	var $REGISTERED_VARS	= array();
-		// path to the templates
 	var $TEMPLATE_DIR;
 
-		// simple constructor	
 	function Template($path){
 		$this->TEMPLATE_DIR = $path;
 	}
 
-		// method to register a template value
 	function regVar($key, $val){
 		$this->REGISTERED_VARS[$key] = $val;
 	}
 
-		// method to register a hash of of values
 	function regHash($dataHash) {
 		foreach($dataHash as $key => $value) {
 				// perform the replacement
@@ -27,7 +22,7 @@ class Template {
 		}
 	}
 
-		// routine to filter and output the template	
+	// routine to filter and output the template	
 	function  spitContent($template) {
 			// set template file
 		$templateFile = "$this->TEMPLATE_DIR/$template";
@@ -42,11 +37,11 @@ class Template {
 			$result = preg_replace("/\\$$key/", $value, $result);
 		}
 
-			// remove all unsupplied keys from the results
+		// remove all unsupplied keys from the results
 		$result = preg_replace("/\\$\w+/", '', $result);
 
-			// return post-filtered results
-		return $result;
+    // return post-filtered results
+	  return $result;
 	}
 }
 
