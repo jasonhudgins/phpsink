@@ -1,21 +1,12 @@
 <?php
 /* vim: set expandtab tabstop=4 shiftwidth=4 softabstop=4: */
-// +----------------------------------------------------------------------+
-// | Copyright (c) 1999-2005 deviantART Inc.                              |
-// +----------------------------------------------------------------------+
-// | This source file is bound by United States copyright law.            |
-// +----------------------------------------------------------------------+
-// | Authors: Jason Hudgins <jasonlee@spy.net>                            |
-// +----------------------------------------------------------------------+
-//
-// $Id: Chooser.class.php,v 1.1 2005-01-31 18:08:29 thanatos Exp $
 
 
 class Chooser {
 
 
-    	/**
-		* this is a 2d array to store the items we can choose from
+  /**
+  * this is a 2d array to store the items we can choose from
 		*/
 	var $_items = array();
 
